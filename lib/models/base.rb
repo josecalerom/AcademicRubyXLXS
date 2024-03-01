@@ -1,21 +1,53 @@
-require 'pg'
+require 'pry'
+require_relative '../pg_connector'
 
-module Base
-	extend self
+# This is an Model Interface
+class Base
+  extend PgConnector
+  include PgConnector
 
-	def connect
-		PG.connect(
-			dbname: 'academic_development',
-			host: '172.18.48.1',
-			port: '4321',
-			user: 'postgres',
-			password: '*R8:KqD1234i7hR+9HZsaGH98A3'
-		)
-	end
+  ALLOWED_TABLES = ['User', 'Role']
 
-	def exec(query="")
-		result = connect.exec query
-		connect.close
-		result.to_a
-	end
+  # Lista todos os registros do banco de dados
+  # Use: Model.all
+  def self.all
+	# binding.pry
+    raise StandardError, 'The Base class is not a table' unless ALLOWED_TABLES.include? name
+
+    table_name = name.downcase.concat('s')
+
+    exec_query("SELECT #{table_name}.* FROM #{table_name}").to_a # call PgConnector exec_query method
+  end
+
+  # Cria um registro do model no DB
+  # Use: Model.create(args)
+  def self.create(**args)
+    new(**args).save
+  end
+
+  def self.find_by(**args)
+    args.map{ |k, v| self.all.select { |r| r[k.to_s] == v }.first }.first
+  end
+
+  # Salva um registro do objeto no DB
+  # Use: Model.new.save
+  def save
+    attribs = instance_variables.map { |v| v.to_s.gsub('@', '') }
+    values = attribs.map { |v| send v }
+
+    exec_query(%{
+      INSERT INTO #{self.class.name.downcase.concat('s')} (#{attribs.join(', ')})
+      VALUES (#{values.map{ |v| "'#{v}'" }.join(', ')})
+    })
+  end
+
+  # Atualiza o registro do objeto no DB
+  # Use: Model.new.update(args)
+  def update(**)
+  end
+
+  # Deletar o registro do objeto no DB
+  # Use: Model.new.save
+  def delete
+  end
 end

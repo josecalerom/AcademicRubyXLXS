@@ -1,4 +1,7 @@
 require 'pg'
+require 'dotenv'
+
+Dotenv.load
 
 module PgSearch
   def self.included(base)
@@ -14,11 +17,11 @@ module PgSearch
 
     def connect
       @connection ||= PG.connect(
-        dbname: 'academic_development',
-        host: '172.18.48.1',
-        port: '4321',
-        user: 'postgres',
-        password: '*R8:KqD1234i7hR+9HZsaGH98A3'
+        dbname: ENV['DB_NAME']
+        host: ENV['DB_HOST']
+        port: ENV['DB_PORT']
+        user: ENV['DB_USER']
+        password: ENV['DB_PASS']
       )
     end
 

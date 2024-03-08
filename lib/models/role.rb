@@ -1,9 +1,7 @@
 require_relative "base"
 
 class Role < Base
-  attr_accessor :name
+  DEFAULT_ATTRS = [:name]
 
-  def initialize(**args)
-    @name = args[:name]
-  end
+  attr_accessor *DEFAULT_ATTRS
 end

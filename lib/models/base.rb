@@ -5,7 +5,7 @@ Dotenv.load
 
 # This is an Model Interface
 class Base
-  ALLOWED_TABLES = %w[User Role Contact]
+  ALLOWED_TABLES = %w[User Role Contact School_Class Parent_Student_Relationship Subject School_Class_Subject Parent_Student_School_Class]
 
   def initialize(**args, &block) # new
     initialize_attrs(args, &block)
@@ -18,7 +18,8 @@ class Base
   def self.table_name
     valid_table
 
-    name.downcase.concat('s')
+    name.downcase.end_with?('s') ? name.downcase.concat('es') : name.downcase.concat('s')
+
   end
 
   # Lista todos os registros do banco de dados
@@ -56,8 +57,10 @@ class Base
     attrs = instance_variables.map { |v| v.to_s.gsub('@', '') }
     values = attrs.map { |v| send v }
 
+    updated_name = self.class.name.downcase.end_with?('s') ? self.class.name.downcase.concat('es') : self.class.name.downcase.concat('s')
+
     PgSearch.instance.exec_query(ENV['DB_NAME'], %{
-      INSERT INTO #{self.class.name.downcase.concat('s')} (#{attrs.join(', ')})
+      INSERT INTO #{updated_name} (#{attrs.join(', ')})
       VALUES (#{values.map{ |v| "'#{v}'" }.join(', ')})
     }).then { |result| result.cmd_tuples.positive? }
   end

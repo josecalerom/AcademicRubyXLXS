@@ -49,6 +49,7 @@ class Base
       .instance
       .exec_query(ENV['DB_NAME'], "SELECT #{table_name}.* FROM #{table_name} WHERE #{filter_data.join(' AND ')}")
       .first
+      .then { |pg_result| self.new(**pg_result) }
   end
 
   # Salva um registro do objeto no DB
@@ -57,17 +58,34 @@ class Base
     attrs = instance_variables.map { |v| v.to_s.gsub('@', '') }
     values = attrs.map { |v| send v }
 
-    updated_name = self.class.name.downcase.end_with?('s') ? self.class.name.downcase.concat('es') : self.class.name.downcase.concat('s')
+    table_name = self.class.name.downcase.end_with?('s') ? self.class.name.downcase.concat('es') : self.class.name.downcase.concat('s')
 
     PgSearch.instance.exec_query(ENV['DB_NAME'], %{
-      INSERT INTO #{updated_name} (#{attrs.join(', ')})
+      INSERT INTO #{table_name} (#{attrs.join(', ')})
       VALUES (#{values.map{ |v| "'#{v}'" }.join(', ')})
     }).then { |result| result.cmd_tuples.positive? }
   end
 
   # Atualiza o registro do objeto no DB
   # Use: Model.new.update(args)
-  def update()
+  def update(**args)
+    table_name = self.class.name.downcase.end_with?('s') ? self.class.name.downcase.concat('es') : self.class.name.downcase.concat('s')
+    set_args = args.map { |key, value| "#{key} = '#{value}'"}.join(', ')
+
+    PgSearch.instance.exec_query(ENV['DB_NAME'], %{
+      UPDATE #{table_name}
+      SET #{set_args}
+      WHERE id = #{id};
+    }).then { |result| result.cmd_tuples.positive? }
+  end
+
+  def reload!
+    reloaded = self.class.find_by(id: self.id)
+    reloaded.instance_variables.each do |var|
+      instance_variable_set(var, reloaded.instance_variable_get(var))
+    end
+
+    true
   end
 
   # Deletar o registro do objeto no DB
